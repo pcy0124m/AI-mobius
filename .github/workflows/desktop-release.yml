@@ -96,6 +96,16 @@ jobs:
           echo "version=$V" >> "$GITHUB_OUTPUT"
           echo "Resolved version: $V"
 
+      - name: Apply version to package.json
+        # electron-builder 读 package.json 的 version 字段打包; 手动填写的版本 /
+        # 推 desktop-v* tag 解析出的版本若不回写, 产物文件名会是 package.json 旧版本,
+        # 导致后续 rename / release / manifest 步骤对不上 (本仓库 0.0.1 vs 0.0.30 的事故)。
+        # 这里把解析出的版本写回 package.json, 保证全链路版本一致。
+        run: |
+          V="${{ steps.ver.outputs.version }}"
+          node -e "const fs=require('fs');const p='./package.json';const j=JSON.parse(fs.readFileSync(p,'utf8'));j.version=process.argv[1];fs.writeFileSync(p,JSON.stringify(j,null,2)+'\n')" "$V"
+          echo "package.json version -> $V"
+
       - name: Install deps (npm ci)
         run: npm ci
 
